@@ -52,11 +52,11 @@ impl PgDatabase {
 
 // Implement all the operations supported by the database
 impl Database for PgDatabase {
-    // fn list_baskets(&self) -> Vec<Basket> {
-    //     self.execute(|conn| {
-    //         baskets::table.load::<Basket>(conn)
-    //     })
-    // }
+    fn list_baskets(&self) -> Vec<Basket> {
+        self.execute(|conn| {
+            baskets::table.load::<Basket>(conn)
+        })
+    }
     fn add_basket(&self, basket: Basket) {
         self.execute(|conn| {
             try!(diesel::insert(&basket).into(baskets::table)
