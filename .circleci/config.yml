@@ -1,0 +1,25 @@
+version: 2.0
+
+jobs:
+  build:
+    docker:
+      - image: clux/muslrust:stable
+    steps:
+      - checkout
+      - run: cargo build
+      - run: cargo build --tests
+  test:
+    docker:
+      - image: clux/muslrust:stable
+    steps:
+      - checkout
+      - run: cargo test
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
