@@ -6,20 +6,11 @@ jobs:
       - image: passfort/rust-musl-builder:latest
     steps:
       - checkout
-      - run: cargo build
-      - run: cargo build --tests
-  test:
-    docker:
-      - image: passfort/rust-musl-builder:latest
-    steps:
-      - checkout
-      - run: cargo test
+      - run: cargo build --release --target=x86_64-unknown-linux-musl
+      - run: cargo test --release --target=x86_64-unknown-linux-musl
 
 workflows:
   version: 2
   build_and_test:
     jobs:
       - build
-      - test:
-          requires:
-            - build
