@@ -3,14 +3,14 @@ version: 2.0
 jobs:
   build:
     docker:
-      - image: eu.gcr.io/core-gearbox-112418/rust-musl-builder:latest
+      - image: passfort/rust-musl-builder:latest
     steps:
       - checkout
       - run: cargo build
       - run: cargo build --tests
   test:
     docker:
-      - image: eu.gcr.io/core-gearbox-112418/rust-musl-builder:latest
+      - image: passfort/rust-musl-builder:latest
     steps:
       - checkout
       - run: cargo test
