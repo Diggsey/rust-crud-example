@@ -1,16 +1,38 @@
 version: 2.0
 
 jobs:
-  build:
+  build_and_test:
     docker:
       - image: passfort/rust-musl-builder:latest
     steps:
       - checkout
       - run: cargo build --release --target=x86_64-unknown-linux-musl
       - run: cargo test --release --target=x86_64-unknown-linux-musl
-
+      - persist_to_workspace:
+          root: .
+          paths:
+            - target/x86_64-unknown-linux-musl/release/checkout
+            - Dockerfile
+  deploy:
+    docker:
+      - image: google/cloud-sdk:latest
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: Authenticate to GCP
+          command: |
+              echo $GCLOUD_SERVICE_KEY | base64 --decode --ignore-garbage > ${HOME}/gcloud-service-key.json
+              gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
+              gcloud config set compute/zone europe-west1-b
+              gcloud config set project core-gearbox-112418
+      - run: |
+          gcloud container builds submit --tag $PROJECT_URI/checkout .
 workflows:
   version: 2
-  build_and_test:
+  build_test_and_deploy:
     jobs:
-      - build
+      - build_and_test
+      - deploy
+          requires:
+            - build_and_test
