@@ -15,7 +15,7 @@ jobs:
       - save_cache:
           key: v1-cargo-deps-{{ checksum "Cargo.lock" }}-{{ checksum ".circleci/config.yml" }}
           paths:
-            - /home/root/.cargo
+            - /root/.cargo
             - target
       - persist_to_workspace:
           root: .
