@@ -6,8 +6,17 @@ jobs:
       - image: passfort/rust-musl-builder:latest
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - v1-cargo-deps-{{ checksum "Cargo.lock" }}
+            - v1-cargo-deps
       - run: cargo build --release --target=x86_64-unknown-linux-musl
       - run: cargo test --release --target=x86_64-unknown-linux-musl
+      - save_cache:
+          key: v1-cargo-deps-{{ checksum "Cargo.lock" }}
+          paths:
+            - ${HOME}/.cargo
+            - target
       - persist_to_workspace:
           root: .
           paths:
