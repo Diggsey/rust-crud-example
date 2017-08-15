@@ -4,6 +4,6 @@ fn fail_test() {
 }
 
 #[test]
-fn fail_test2() {
+fn fail_test3() {
     //Test that the cache is working
 }
