@@ -13,9 +13,9 @@ jobs:
       - run: cargo build --release --target=x86_64-unknown-linux-musl
       - run: cargo test --release --target=x86_64-unknown-linux-musl
       - save_cache:
-          key: v1-cargo-deps-{{ checksum "Cargo.lock" }}
+          key: v1-cargo-deps-{{ checksum "Cargo.lock" }}-{{ checksum "config.yml" }}
           paths:
-            - ${HOME}/.cargo
+            - /home/root/.cargo
             - target
       - persist_to_workspace:
           root: .
