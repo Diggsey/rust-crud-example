@@ -68,6 +68,9 @@ jobs:
     docker:
       - image: google/cloud-sdk:latest
     steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "2a:14:19:87:64:7e:84:b0:d4:d0:6d:4a:53:98:63:ec"
       - checkout
       - run: |
           git push origin $CIRCLE_BRANCH:master
@@ -75,6 +78,9 @@ jobs:
     docker:
       - image: google/cloud-sdk:latest
     steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "2a:14:19:87:64:7e:84:b0:d4:d0:6d:4a:53:98:63:ec"
       - checkout
       - run: |
           git push -f origin $CIRCLE_BRANCH:testing
