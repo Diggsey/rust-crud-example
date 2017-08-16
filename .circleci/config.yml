@@ -49,7 +49,6 @@ jobs:
           CLUSTER_master: production
     steps:
       - checkout
-      - setup_remote_docker
       - attach_workspace:
           at: .
       - run:
@@ -62,7 +61,7 @@ jobs:
       - run:
           name: Ensure commit has been built
           command: |
-            gcloud docker -- pull $PROJECT_URI/checkout:$CIRCLE_SHA1
+            gcloud container images list-tags $PROJECT_URI/checkout --format='value(tags[])' | grep "^$CIRCLE_SHA1$"
       - run: |
           eval echo "Would deploy $CIRCLE_SHA1 to \$CLUSTER_${CIRCLE_BRANCH} at this point."
   merge_master:
