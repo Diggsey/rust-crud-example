@@ -21,11 +21,14 @@ jobs:
           root: .
           paths:
             - target/x86_64-unknown-linux-musl/release/checkout
-            - Dockerfile
-  deploy:
+  push_and_deploy:
     docker:
       - image: google/cloud-sdk:latest
+        environment:
+          CLUSTER_staging: staging-2
+          CLUSTER_testing: testing
     steps:
+      - checkout
       - attach_workspace:
           at: .
       - run:
@@ -36,12 +39,97 @@ jobs:
               gcloud config set compute/zone europe-west1-b
               gcloud config set project core-gearbox-112418
       - run: |
-          gcloud container builds submit --tag $PROJECT_URI/checkout .
+          gcloud container builds submit --tag $PROJECT_URI/checkout:$CIRCLE_SHA1 .
+      - run: |
+          eval echo "Would deploy $CIRCLE_SHA1 to \$CLUSTER_${CIRCLE_BRANCH} at this point."
+  deploy:
+    docker:
+      - image: google/cloud-sdk:latest
+        environment:
+          CLUSTER_master: production
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Authenticate to GCP
+          command: |
+              echo $GCLOUD_SERVICE_KEY | base64 --decode --ignore-garbage > ${HOME}/gcloud-service-key.json
+              gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
+              gcloud config set compute/zone europe-west1-b
+              gcloud config set project core-gearbox-112418
+      - run: |
+          name: Ensure commit has been built
+          command: |
+              gcloud docker pull $PROJECT_URI/checkout:$CIRCLE_SHA1
+      - run: |
+          eval echo "Would deploy $CIRCLE_SHA1 to \$CLUSTER_${CIRCLE_BRANCH} at this point."
+  merge_master:
+    docker:
+      - image: google/cloud-sdk:latest
+    steps:
+      - checkout
+      - git push origin $CIRCLE_BRANCH:master
+  merge_testing:
+    docker:
+      - image: google/cloud-sdk:latest
+    steps:
+      - checkout
+      - git push -f origin $CIRCLE_BRANCH:testing
 workflows:
   version: 2
   build_test_and_deploy:
     jobs:
       - build_and_test
-      - deploy:
+          filters:
+            branches:
+              ignore:
+                - master
+                - testing
+      - push_and_deploy:
           requires:
             - build_and_test
+          filters:
+            branches:
+              only:
+                - staging
+                - testing
+      - deploy:
+          filters:
+            branches:
+              only:
+                - master
+      - hold_production:
+          type: approval
+          requires:
+            - build_and_test
+          filters:
+            branches:
+              only:
+                - staging
+      - hold_testing:
+          type: approval
+          requires:
+            - build_and_test
+          filters:
+            branches:
+              ignore:
+                - master
+                - testing
+                - staging
+      - merge_master:
+          requires:
+            - hold_production
+          filters:
+            branches:
+              only:
+                - staging
+      - merge_testing:
+          requires:
+            - hold_testing
+          filters:
+            branches:
+              ignore:
+                - master
+                - testing
+                - staging
