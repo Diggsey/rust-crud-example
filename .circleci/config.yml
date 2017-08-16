@@ -69,13 +69,15 @@ jobs:
       - image: google/cloud-sdk:latest
     steps:
       - checkout
-      - git push origin $CIRCLE_BRANCH:master
+      - run: |
+          git push origin $CIRCLE_BRANCH:master
   merge_testing:
     docker:
       - image: google/cloud-sdk:latest
     steps:
       - checkout
-      - git push -f origin $CIRCLE_BRANCH:testing
+      - run: |
+          git push -f origin $CIRCLE_BRANCH:testing
 workflows:
   version: 2
   build_test_and_deploy:
