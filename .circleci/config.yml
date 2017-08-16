@@ -23,10 +23,11 @@ jobs:
             - target/x86_64-unknown-linux-musl/release/checkout
   push_and_deploy:
     docker:
-      - image: google/cloud-sdk:latest
+      - image: passfort/cloud-deploy:latest
         environment:
           CLUSTER_staging: staging-2
           CLUSTER_testing: testing
+          DATABASE_staging: p-diddy
     steps:
       - checkout
       - attach_workspace:
@@ -41,10 +42,19 @@ jobs:
       - run: |
           gcloud container builds submit --tag $PROJECT_URI/checkout:$CIRCLE_SHA1 .
       - run: |
-          eval echo "Would deploy $CIRCLE_SHA1 to \$CLUSTER_${CIRCLE_BRANCH} at this point."
+          export DATABASE_NAME=`eval echo \$DATABASE_${CIRCLE_BRANCH}`
+          export CLUSTER=`eval echo \$CLUSTER_${CIRCLE_BRANCH}`
+
+          echo "Deploying $CIRCLE_SHA1 to $CLUSTER..."
+
+          gcloud config set container/cluster $CLUSTER
+          gcloud container clusters get-credentials $CLUSTER
+
+          envsubst kubernetes/deployment.yml | kubectl apply -f -
+
   deploy:
     docker:
-      - image: google/cloud-sdk:latest
+      - image: passfort/cloud-deploy:latest
         environment:
           CLUSTER_master: production
     steps:
@@ -63,10 +73,18 @@ jobs:
           command: |
             gcloud container images list-tags $PROJECT_URI/checkout --format='value(tags[])' | grep "^$CIRCLE_SHA1$"
       - run: |
-          eval echo "Would deploy $CIRCLE_SHA1 to \$CLUSTER_${CIRCLE_BRANCH} at this point."
+          export DATABASE_NAME=`eval echo \$DATABASE_${CIRCLE_BRANCH}`
+          export CLUSTER=`eval echo \$CLUSTER_${CIRCLE_BRANCH}`
+
+          echo "Deploying $CIRCLE_SHA1 to $CLUSTER..."
+
+          gcloud config set container/cluster $CLUSTER
+          gcloud container clusters get-credentials $CLUSTER
+
+          envsubst kubernetes/deployment.yml | kubectl apply -f -
   merge_master:
     docker:
-      - image: google/cloud-sdk:latest
+      - image: passfort/cloud-deploy:latest
     steps:
       - add_ssh_keys:
           fingerprints:
@@ -76,7 +94,7 @@ jobs:
           git push origin $CIRCLE_BRANCH:master
   merge_testing:
     docker:
-      - image: google/cloud-sdk:latest
+      - image: passfort/cloud-deploy:latest
     steps:
       - add_ssh_keys:
           fingerprints:

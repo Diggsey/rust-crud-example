@@ -1,70 +1,35 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: flask
+  name: checkout
 spec:
-  replicas: 15
+  replicas: 3
   strategy:
-    rollingUpdate:
-      maxSurge: 5
-      maxUnavailable: 4
+    rollingUpdate
   selector:
     matchLabels:
-      passfort: flask
+      passfort: checkout
   progressDeadlineSeconds: 120
   template:
     metadata:
-      name: flask
+      name: checkout
       labels:
-        passfort: flask
+        passfort: checkout
     spec:
-
       volumes:
-        - name: static-hashes
-          secret:
-            secretName: static-hashes
-        - name: email-templates
-          secret:
-            secretName: email-templates
-        - name: cloudsql-oauth-credentials
-          secret:
-            secretName: cloudsql-oauth-credentials
-        - name: ssl-certs
-          hostPath:
-            path: /etc/ssl/certs
         - name: cloudsql
           emptyDir:
 
       containers:
-        - name: flask
-          image: {container_uri}
-          imagePullPolicy: Always
-          volumeMounts:
-            - name: static-hashes
-              mountPath: /srv/PassFort/secrets/static-hashes
-              readOnly: true
-            - name: email-templates
-              mountPath: /srv/PassFort/secrets/email-templates
-              readOnly: true
-          ports:
-          - containerPort: 9090
-          env:
-            - name: "PASSFORT_CONFIG"
-              value: "/srv/PassFort/python/config_{cluster}.py"
-
-        - image: b.gcr.io/cloudsql-docker/gce-proxy:1.09
-          name: cloudsql-proxy
+        - name: checkout
+          image: $PROJECT_URI/checkout:$CIRCLE_SHA1
+        - name: cloudsql-proxy
+          image: b.gcr.io/cloudsql-docker/gce-proxy:1.09
           resources:
             requests:
               cpu: "50m"
           command: ["/cloud_sql_proxy", "--dir=/cloudsql",
-                  "-instances=core-gearbox-112418:europe-west1:{database_name}=tcp:3306",
-                  "-credential_file=/secrets/cloudsql/credentials.json"]
+                  "-instances=core-gearbox-112418:europe-west1:$DATABASE_NAME=tcp:5432"]
           volumeMounts:
-            - name: cloudsql-oauth-credentials
-              mountPath: /secrets/cloudsql
-              readOnly: true
-            - name: ssl-certs
-              mountPath: /etc/ssl/certs
             - name: cloudsql
               mountPath: /cloudsql
