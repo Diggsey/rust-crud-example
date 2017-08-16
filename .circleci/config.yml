@@ -103,16 +103,12 @@ workflows:
                 - master
       - hold_production:
           type: approval
-          requires:
-            - build_and_test
           filters:
             branches:
               only:
                 - staging
       - hold_testing:
           type: approval
-          requires:
-            - build_and_test
           filters:
             branches:
               ignore:
@@ -121,6 +117,7 @@ workflows:
                 - staging
       - merge_master:
           requires:
+            - push_and_deploy
             - hold_production
           filters:
             branches:
@@ -128,6 +125,7 @@ workflows:
                 - staging
       - merge_testing:
           requires:
+            - build_and_test
             - hold_testing
           filters:
             branches:
