@@ -4,8 +4,6 @@ metadata:
   name: checkout
 spec:
   replicas: 3
-  strategy:
-    rollingUpdate
   selector:
     matchLabels:
       passfort: checkout
