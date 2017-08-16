@@ -42,8 +42,8 @@ jobs:
       - run: |
           gcloud container builds submit --tag $PROJECT_URI/checkout:$CIRCLE_SHA1 .
       - run: |
-          export DATABASE_NAME=`eval echo \$DATABASE_${CIRCLE_BRANCH}`
-          export CLUSTER=`eval echo \$CLUSTER_${CIRCLE_BRANCH}`
+          export DATABASE_NAME=$(eval echo \$DATABASE_${CIRCLE_BRANCH})
+          export CLUSTER=$(eval echo \$CLUSTER_${CIRCLE_BRANCH})
 
           echo "Deploying $CIRCLE_SHA1 to $CLUSTER..."
 
