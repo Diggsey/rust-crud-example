@@ -49,6 +49,7 @@ jobs:
           CLUSTER_master: production
     steps:
       - checkout
+      - setup_remote_docker
       - attach_workspace:
           at: .
       - run:
