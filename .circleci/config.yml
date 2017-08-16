@@ -50,7 +50,7 @@ jobs:
           gcloud config set container/cluster $CLUSTER
           gcloud container clusters get-credentials $CLUSTER
 
-          envsubst kubernetes/deployment.yml | kubectl apply -f -
+          cat kubernetes/deployment.yml | envsubst | kubectl apply -f -
 
   deploy:
     docker:
