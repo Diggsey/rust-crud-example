@@ -24,6 +24,10 @@ spec:
           env:
             - name: DATABASE_URL
               value: "$DATABASE_URL"
+            - name: RUST_LOG
+              value: info
+            - name: RUST_BACKTRACE
+              value: 1
         - name: ubuntu
           image: ubuntu
           command: ["tail", "-f", "/dev/null"]
