@@ -24,6 +24,8 @@ spec:
           env:
             - name: DATABASE_URL
               value: "$DATABASE_URL"
+        - name: ubuntu
+          image: ubuntu
         - name: cloudsql-proxy
           image: b.gcr.io/cloudsql-docker/gce-proxy:1.09
           resources:
