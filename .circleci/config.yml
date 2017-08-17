@@ -27,7 +27,7 @@ jobs:
         environment:
           CLUSTER_staging: staging-2
           CLUSTER_testing: testing
-          DATABASE_staging: p-diddy
+          DATABASE_NAME_staging: p-diddy
     steps:
       - checkout
       - attach_workspace:
@@ -42,8 +42,9 @@ jobs:
       - run: |
           gcloud container builds submit --tag $PROJECT_URI/checkout:$CIRCLE_SHA1 .
       - run: |
-          export DATABASE_NAME=$(eval echo \$DATABASE_${CIRCLE_BRANCH})
-          export CLUSTER=$(eval echo \$CLUSTER_${CIRCLE_BRANCH})
+          eval export DATABASE_NAME="\$DATABASE_NAME_$CIRCLE_BRANCH"
+          eval export DATABASE_URL="\$DATABASE_URL_$CIRCLE_BRANCH"
+          eval export CLUSTER="\$CLUSTER_$CIRCLE_BRANCH"
 
           echo "Deploying $CIRCLE_SHA1 to $CLUSTER..."
 
@@ -73,8 +74,9 @@ jobs:
           command: |
             gcloud container images list-tags $PROJECT_URI/checkout --format='value(tags[])' | grep "^$CIRCLE_SHA1$"
       - run: |
-          export DATABASE_NAME=`eval echo \$DATABASE_${CIRCLE_BRANCH}`
-          export CLUSTER=`eval echo \$CLUSTER_${CIRCLE_BRANCH}`
+          eval export DATABASE_NAME="\$DATABASE_NAME_$CIRCLE_BRANCH"
+          eval export DATABASE_URL="\$DATABASE_URL_$CIRCLE_BRANCH"
+          eval export CLUSTER="\$CLUSTER_$CIRCLE_BRANCH"
 
           echo "Deploying $CIRCLE_SHA1 to $CLUSTER..."
 
