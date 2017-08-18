@@ -30,6 +30,8 @@ mod routes;
 mod database;
 
 // Imports
+use std::thread;
+use std::time::Duration;
 use iron::prelude::*;
 use logger::Logger;
 use database::middleware::DatabaseMiddleware;
@@ -42,8 +44,17 @@ pub fn postgres_middleware() -> DatabaseMiddleware {
     let database_url = env::var("DATABASE_URL")
         .expect("DATABASE_URL must be set");
 
-    let database = PgDatabase::connect(&database_url)
-        .expect(&format!("Error connecting to {}", database_url));
+    let mut attempts = 0;
+    let database = loop {
+        match PgDatabase::connect(&database_url) {
+            Ok(database) => break database,
+            Err(_) if attempts < 5 => {
+                attempts += 1;
+                thread::sleep(Duration::from_secs(1));
+            },
+            Err(e) => panic!("Error connecting to {}: {:?}", database_url, e)
+        }
+    };
     
     DatabaseMiddleware::new(database)
 }
@@ -58,5 +69,7 @@ fn main() {
     chain.link(Logger::new(None));
     chain.link_before(postgres_middleware());
 
-    Iron::new(chain).http("localhost:3000").unwrap();
+    let listener = Iron::new(chain).http("localhost:3000").unwrap();
+    println!("Server started on localhost:3000");
+    drop(listener);
 }
