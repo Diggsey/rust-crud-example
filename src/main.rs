@@ -30,27 +30,30 @@ mod routes;
 mod database;
 
 // Imports
-use std::thread;
+use std::{thread, env};
 use std::time::Duration;
 use iron::prelude::*;
 use logger::Logger;
 use database::middleware::DatabaseMiddleware;
+use database::postgres::PgDatabase;
+use database::interface::Database;
 
-// Create database middleware
-pub fn postgres_middleware() -> DatabaseMiddleware {
-    use std::env;
-    use database::postgres::PgDatabase;
 
+pub fn postgres_database() -> PgDatabase {
     // Give the SQL proxy a second to start
     thread::sleep(Duration::from_secs(1));
 
     let database_url = env::var("DATABASE_URL")
         .expect("DATABASE_URL must be set");
 
-    let database = PgDatabase::connect(&database_url)
-        .expect(&format!("Error connecting to {}", database_url));
-    
-    DatabaseMiddleware::new(database)
+    PgDatabase::connect(&database_url)
+        .expect(&format!("Error connecting to {}", database_url))
+}
+
+// Create database middleware
+fn migrate_database() {
+    postgres_database().migrate();
+    println!("Up-to-date!");
 }
 
 
@@ -59,9 +62,16 @@ fn main() {
     pretty_env_logger::init()
         .expect("Failed to initialize logger");
 
+    for arg in env::args().skip(1) {
+        match &*arg {
+            "--migrate" => return migrate_database(),
+            other => panic!("Unexpected argument: {}", other)
+        }
+    }
+
     let mut chain = Chain::new(routes::get());
     chain.link(Logger::new(None));
-    chain.link_before(postgres_middleware());
+    chain.link_before(DatabaseMiddleware::new(postgres_database()));
 
     let listener = Iron::new(chain).http("0.0.0.0:3000").unwrap();
     println!("Server started on 0.0.0.0:3000");

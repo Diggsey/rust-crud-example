@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: checkout-migrator
+spec:
+  activeDeadlineSeconds: 100
+  template:
+    metadata:
+      name: checkout-migrator
+    spec:
+      containers:
+        - name: checkout
+          image: $PROJECT_URI/checkout:$CIRCLE_SHA1
+          command: ["/checkout",  "--migrate"]
+          env:
+            - name: DATABASE_URL
+              value: "$DATABASE_URL"
+            - name: RUST_LOG
+              value: info
+            - name: RUST_BACKTRACE
+              value: "1"
+        - name: cloudsql-proxy
+          image: b.gcr.io/cloudsql-docker/gce-proxy:1.09
+          resources:
+            requests:
+              cpu: "50m"
+          command: ["/cloud_sql_proxy", "--dir=/cloudsql",
+                  "-instances=core-gearbox-112418:europe-west1:$DATABASE_NAME=tcp:5432"]
+          volumeMounts:
+            - name: cloudsql
+              mountPath: /cloudsql
+      restartPolicy: Never

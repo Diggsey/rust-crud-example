@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::io;
 
 use diesel;
 use diesel::prelude::*;
@@ -9,6 +10,8 @@ use r2d2_diesel::ConnectionManager;
 
 use schema::*;
 use database::interface::Database;
+
+embed_migrations!("migrations");
 
 // Implement a postgres database backend using a connection pool
 pub struct PgDatabase(r2d2::Pool<ConnectionManager<PgConnection>>);
@@ -63,5 +66,11 @@ impl Database for PgDatabase {
                 .get_result::<Basket>(conn));
             Ok(())
         })
+    }
+    fn migrate(&self) {
+        let conn = self.0.get()
+            .expect("Failed to obtain database connection");
+        embedded_migrations::run_with_output(&*conn, &mut io::stdout())
+            .expect("Failed to run migration");
     }
 }

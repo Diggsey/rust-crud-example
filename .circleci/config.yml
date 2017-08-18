@@ -51,6 +51,15 @@ jobs:
           gcloud config set container/cluster $CLUSTER
           gcloud container clusters get-credentials $CLUSTER
 
+          kubectl delete pod checkout-migrator || echo "No previous migrator to delete"
+          sleep 1
+          cat kubernetes/migrator.yml | envsubst | kubectl apply -f -
+          until kubectl attach checkout-migrator -c checkout
+          do
+            echo "Waiting for migrator to start..."
+            sleep 1
+          done
+
           cat kubernetes/deployment.yml | envsubst | kubectl apply -f -
           cat kubernetes/service.yml | envsubst | kubectl apply -f -
 
@@ -83,6 +92,15 @@ jobs:
 
           gcloud config set container/cluster $CLUSTER
           gcloud container clusters get-credentials $CLUSTER
+
+          kubectl delete pod checkout-migrator || echo "No previous migrator to delete"
+          sleep 1
+          cat kubernetes/migrator.yml | envsubst | kubectl apply -f -
+          until kubectl attach checkout-migrator -c checkout
+          do
+            echo "Waiting for migrator to start..."
+            sleep 1
+          done
 
           cat kubernetes/deployment.yml | envsubst | kubectl apply -f -
           cat kubernetes/service.yml | envsubst | kubectl apply -f -
