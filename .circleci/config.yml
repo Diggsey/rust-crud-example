@@ -52,6 +52,7 @@ jobs:
           gcloud container clusters get-credentials $CLUSTER
 
           cat kubernetes/deployment.yml | envsubst | kubectl apply -f -
+          cat kubernetes/service.yml | envsubst | kubectl apply -f -
 
   deploy:
     docker:
@@ -83,7 +84,8 @@ jobs:
           gcloud config set container/cluster $CLUSTER
           gcloud container clusters get-credentials $CLUSTER
 
-          envsubst kubernetes/deployment.yml | kubectl apply -f -
+          cat kubernetes/deployment.yml | envsubst | kubectl apply -f -
+          cat kubernetes/service.yml | envsubst | kubectl apply -f -
   merge_master:
     docker:
       - image: passfort/cloud-deploy:latest
