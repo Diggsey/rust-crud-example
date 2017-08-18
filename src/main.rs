@@ -41,20 +41,14 @@ pub fn postgres_middleware() -> DatabaseMiddleware {
     use std::env;
     use database::postgres::PgDatabase;
 
+    // Give the SQL proxy a second to start
+    thread::sleep(Duration::from_secs(1));
+
     let database_url = env::var("DATABASE_URL")
         .expect("DATABASE_URL must be set");
 
-    let mut attempts = 0;
-    let database = loop {
-        match PgDatabase::connect(&database_url) {
-            Ok(database) => break database,
-            Err(_) if attempts < 5 => {
-                attempts += 1;
-                thread::sleep(Duration::from_secs(1));
-            },
-            Err(e) => panic!("Error connecting to {}: {:?}", database_url, e)
-        }
-    };
+    let database = PgDatabase::connect(&database_url)
+        .expect(&format!("Error connecting to {}", database_url));
     
     DatabaseMiddleware::new(database)
 }
