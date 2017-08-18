@@ -63,7 +63,7 @@ fn main() {
     chain.link(Logger::new(None));
     chain.link_before(postgres_middleware());
 
-    let listener = Iron::new(chain).http("localhost:3000").unwrap();
-    println!("Server started on localhost:3000");
+    let listener = Iron::new(chain).http("0.0.0.0:3000").unwrap();
+    println!("Server started on 0.0.0.0:3000");
     drop(listener);
 }
