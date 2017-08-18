@@ -8,6 +8,10 @@ spec:
     metadata:
       name: checkout-migrator
     spec:
+      volumes:
+        - name: cloudsql
+          emptyDir:
+
       containers:
         - name: checkout
           image: $PROJECT_URI/checkout:$CIRCLE_SHA1
