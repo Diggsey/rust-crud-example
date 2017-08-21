@@ -1,5 +1,6 @@
 use std::error::Error;
-use std::io;
+use std::io::{self, Write};
+use std::fmt;
 
 use diesel;
 use diesel::prelude::*;
@@ -15,6 +16,12 @@ embed_migrations!("migrations");
 
 // Implement a postgres database backend using a connection pool
 pub struct PgDatabase(r2d2::Pool<ConnectionManager<PgConnection>>);
+
+impl fmt::Debug for PgDatabase {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "PgDatabase")
+    }
+}
 
 impl PgDatabase {
     // Connect to the database
@@ -60,9 +67,9 @@ impl Database for PgDatabase {
             baskets::table.load::<Basket>(conn)
         })
     }
-    fn add_basket(&self, basket: Basket) {
+    fn add_basket(&self, basket: &Basket) {
         self.execute(|conn| {
-            try!(diesel::insert(&basket).into(baskets::table)
+            try!(diesel::insert(basket).into(baskets::table)
                 .get_result::<Basket>(conn));
             Ok(())
         })

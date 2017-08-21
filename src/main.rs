@@ -1,6 +1,6 @@
 // Iron web framework and middleware
 extern crate iron;
-extern crate router;
+extern crate mount;
 extern crate logger;
 
 // Diesel ORM with r2d2 connection pool
@@ -16,6 +16,10 @@ extern crate r2d2_diesel;
 extern crate serde_derive;
 extern crate serde_json;
 extern crate serde;
+
+// GraphQL
+#[macro_use]
+extern crate juniper;
 
 // Misc. libraries
 extern crate uuid;
@@ -34,7 +38,8 @@ use std::{thread, env};
 use std::time::Duration;
 use iron::prelude::*;
 use logger::Logger;
-use database::middleware::DatabaseMiddleware;
+use juniper::iron_handlers::GraphQLHandler;
+use database::middleware::DatabaseWrapper;
 use database::postgres::PgDatabase;
 use database::interface::Database;
 
@@ -71,7 +76,7 @@ fn main() {
 
     let mut chain = Chain::new(routes::get());
     chain.link(Logger::new(None));
-    chain.link_before(DatabaseMiddleware::new(postgres_database()));
+    chain.link_before(DatabaseWrapper::new(postgres_database()));
 
     let listener = Iron::new(chain).http("0.0.0.0:3000").unwrap();
     println!("Server started on 0.0.0.0:3000");

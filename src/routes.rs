@@ -1,34 +1,77 @@
 use iron::prelude::*;
 use iron::status;
-use router::Router;
+use mount::Mount;
 use uuid::Uuid;
+use juniper::iron_handlers::{GraphiQLHandler, GraphQLHandler};
+use juniper::{Value, EmptyMutation, Context};
 
 use schema::*;
-use database::middleware::DatabaseRequestExt;
+use database::middleware::{DatabaseRequestExt, DatabaseWrapper};
+use database::interface::Database;
 
-pub fn get() -> Router {
-    let mut router = Router::new();
-    router.get("/", index, "index");
-    router.get("/new", add_basket, "add_basket");
-    router.get("/list", list_baskets, "list_baskets");
-    router
+struct Query;
+struct Mutation;
+
+struct UuidWrapper(Uuid);
+
+impl Context for DatabaseWrapper {}
+
+graphql_scalar!(UuidWrapper as "Uuid" {
+    description: "A UUID"
+
+    resolve(&self) -> Value {
+        Value::string(&self.0.to_string())
+    }
+
+    from_input_value(v: &InputValue) -> Option<UuidWrapper> {
+        v.as_string_value().and_then(|s| Uuid::parse_str(s).ok()).map(UuidWrapper)
+    }
+});
+
+graphql_object!(Basket: DatabaseWrapper |&self| {
+    description: "A single basket"
+
+    field id(&executor) -> UuidWrapper {
+        UuidWrapper(self.id)
+    }
+});
+
+graphql_object!(Query: DatabaseWrapper |&self| {
+    description: "The root query object of the schema"
+
+    field baskets(&executor) -> Vec<Basket> {
+        executor.context().list_baskets()
+    }
+});
+
+graphql_object!(Mutation: DatabaseWrapper |&self| {
+    description: "The root mutation object of the schema"
+
+    field add_basket(&executor) -> Basket {
+        let basket = Basket {
+            id: Uuid::new_v4(),
+            contents: Default::default()
+        };
+        executor.context().add_basket(&basket);
+        basket
+    }
+});
+
+fn context_factory(req: &mut Request) -> DatabaseWrapper {
+    req.db()
 }
 
-fn index(req: &mut Request) -> IronResult<Response> {
-    let ref query = req.extensions.get::<Router>().unwrap().find("query").unwrap_or("/");
-    Ok(Response::with((status::Ok, *query)))
-}
+pub fn get() -> Mount {
+    let mut mount = Mount::new();
 
-fn add_basket(req: &mut Request) -> IronResult<Response> {
-    let basket = Basket {
-        id: Uuid::new_v4(),
-        contents: Default::default()
-    };
-    req.db().add_basket(basket);
-    Ok(Response::with((status::Ok, "Done")))
-}
+    let graphql_endpoint = GraphQLHandler::new(
+        context_factory,
+        Query,
+        Mutation,
+    );
+    let graphiql_endpoint = GraphiQLHandler::new("/graphql");
 
-fn list_baskets(req: &mut Request) -> IronResult<Response> {
-    let result = req.db().list_baskets();
-    Ok(Response::with((status::Ok, format!("{:?}", result))))
+    mount.mount("/", graphiql_endpoint);
+    mount.mount("/graphql", graphql_endpoint);
+    mount
 }
