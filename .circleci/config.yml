@@ -52,7 +52,12 @@ jobs:
           gcloud container clusters get-credentials $CLUSTER
 
           kubectl delete pod checkout-migrator && echo "Deleted previous migrator" || echo "No previous migrator to delete"
-          sleep 1
+          while kubectl get pod checkout-migrator
+          do
+            echo "Waiting for migrator to be deleted..."
+            sleep 1
+          done
+
           cat kubernetes/migrator.yml | envsubst | kubectl create -f -
           until kubectl logs -f checkout-migrator -c checkout
           do
@@ -94,7 +99,12 @@ jobs:
           gcloud container clusters get-credentials $CLUSTER
 
           kubectl delete pod checkout-migrator && echo "Deleted previous migrator" || echo "No previous migrator to delete"
-          sleep 1
+          while kubectl get pod checkout-migrator
+          do
+            echo "Waiting for migrator to be deleted..."
+            sleep 1
+          done
+
           cat kubernetes/migrator.yml | envsubst | kubectl create -f -
           until kubectl logs -f checkout-migrator -c checkout
           do
