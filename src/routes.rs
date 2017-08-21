@@ -1,13 +1,11 @@
 use iron::prelude::*;
-use iron::status;
 use mount::Mount;
 use uuid::Uuid;
 use juniper::iron_handlers::{GraphiQLHandler, GraphQLHandler};
-use juniper::{Value, EmptyMutation, Context};
+use juniper::{Value, Context};
 
 use schema::*;
 use database::middleware::{DatabaseRequestExt, DatabaseWrapper};
-use database::interface::Database;
 
 struct Query;
 struct Mutation;
@@ -69,7 +67,7 @@ pub fn get() -> Mount {
         Query,
         Mutation,
     );
-    let graphiql_endpoint = GraphiQLHandler::new("/graphql");
+    let graphiql_endpoint = GraphiQLHandler::new("graphql");
 
     mount.mount("/", graphiql_endpoint);
     mount.mount("/graphql", graphql_endpoint);

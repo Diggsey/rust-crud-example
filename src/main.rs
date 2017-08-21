@@ -38,7 +38,6 @@ use std::{thread, env};
 use std::time::Duration;
 use iron::prelude::*;
 use logger::Logger;
-use juniper::iron_handlers::GraphQLHandler;
 use database::middleware::DatabaseWrapper;
 use database::postgres::PgDatabase;
 use database::interface::Database;
