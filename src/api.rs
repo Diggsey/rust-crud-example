@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 use uuid::Uuid;
 
 
@@ -64,7 +64,7 @@ pub enum DocumentCategory {
 }
 
 
-#[derive(Serialize, Deserialize, Debug, Hash, Eq, PartialEq, Copy, Clone)]
+#[derive(Serialize, Deserialize, Debug, Hash, Eq, PartialEq, Ord, PartialOrd, Copy, Clone)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum DocumentType {
     Passport,
@@ -94,7 +94,7 @@ pub enum DocumentType {
 }
 
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq, Hash)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum CollectionStep {
     FullName {},
@@ -108,7 +108,7 @@ pub enum CollectionStep {
     Document {
         id: Uuid,
         category: DocumentCategory,
-        allowed_types: HashSet<DocumentType>
+        allowed_types: BTreeSet<DocumentType>
     }
 }
 
