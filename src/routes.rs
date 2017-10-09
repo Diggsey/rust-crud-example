@@ -4,6 +4,7 @@ use uuid::Uuid;
 use juniper::iron_handlers::{GraphiQLHandler, GraphQLHandler};
 use juniper::{Value, Context};
 
+use api::*;
 use schema::*;
 use database::middleware::{DatabaseRequestExt, DatabaseWrapper};
 
@@ -46,10 +47,20 @@ graphql_object!(Mutation: DatabaseWrapper |&self| {
     description: "The root mutation object of the schema"
 
     field add_basket(&executor) -> Basket {
-        let basket = Basket {
+        let mut basket = Basket {
             id: Uuid::new_v4(),
             contents: Default::default()
         };
+
+        let mut entity_checks: EntityChecks = Default::default();
+        entity_checks.checks.push(EntityCheck {
+            task: TaskType::IndividualVerifyIdentity,
+            check: CheckType::IdentityCheck,
+            contact: None
+        });
+
+        basket.contents.0.entities.insert(basket.id, entity_checks);
+
         executor.context().add_basket(&basket);
         basket
     }
