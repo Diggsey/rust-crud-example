@@ -1,6 +1,9 @@
 extern crate checkout;
 extern crate iron_test;
 extern crate iron;
+extern crate serde_json;
+#[macro_use]
+extern crate serde_derive;
 
 use iron_test::request;
 use iron_test::response::extract_body_to_string;
@@ -32,6 +35,23 @@ fn post<H: Handler>(url: &str, app: &H, content: &str) -> (Status, String) {
     )
 }
 
+fn test_query<H: Handler>(app: &H, query: &str, expected_response: &str) {
+    #[derive(Serialize)]
+    struct GraphQlRequest<'a> {
+        query: &'a str
+    }
+
+    let (code, response) = post("/graphql", app, &serde_json::to_string(&GraphQlRequest {
+        query
+    }).unwrap());
+
+    assert_eq!(code, Status::Ok);
+
+    let response_value = serde_json::from_str::<serde_json::Value>(&response).unwrap();
+    let expected_value = serde_json::from_str::<serde_json::Value>(expected_response).unwrap();
+    assert_eq!(response_value, expected_value);
+}
+
 #[test]
 fn graphiql_test() {
     // Verify that we return the GraphiQL interface
@@ -45,15 +65,9 @@ fn graphiql_test() {
 fn smoke_test() {
     // Verify that we can run a query
     let app = create_app(MockDatabase);
-    let (code, response) = post("/graphql", &app, r#"{
-        "query": "{ baskets { id } }"
+    test_query(&app, "{ baskets { id } }", r#"{
+        "data": {
+            "baskets": []
+        }
     }"#);
-    assert_eq!(code, Status::Ok);
-    assert_eq!(response, 
-r#"{
-  "data": {
-    "baskets": []
-  }
-}"#
-    );
 }
