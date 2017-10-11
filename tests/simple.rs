@@ -4,11 +4,13 @@ extern crate iron;
 extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
+extern crate uuid;
 
 use iron_test::request;
 use iron_test::response::extract_body_to_string;
 use iron::{Headers, Handler};
 use iron::status::Status;
+use uuid::Uuid;
 
 use checkout::{Database, create_app, schema};
 
@@ -16,7 +18,14 @@ use checkout::{Database, create_app, schema};
 struct MockDatabase;
 
 impl Database for MockDatabase {
-    fn list_baskets(&self) -> Vec<schema::Basket> { Vec::new() }
+    fn update_basket_impl(&self, basket_id: Uuid, f: &mut FnMut(&mut schema::Basket)) -> schema::Basket {
+        let mut result = schema::Basket {
+            id: basket_id,
+            ..Default::default()
+        };
+        f(&mut result);
+        result
+    }
 }
 
 fn get<H: Handler>(url: &str, app: &H) -> (Status, String) {
@@ -65,9 +74,18 @@ fn graphiql_test() {
 fn smoke_test() {
     // Verify that we can run a query
     let app = create_app(MockDatabase);
-    test_query(&app, "{ baskets { id } }", r#"{
-        "data": {
-            "baskets": []
-        }
-    }"#);
+    test_query(&app,
+        r#"{
+            basket(id: "fcf7269c-2ecc-45b8-8573-c79bb3e10e8d") {
+                id
+            }
+        }"#,
+        r#"{
+            "data": {
+                "basket": {
+                    "id": "fcf7269c-2ecc-45b8-8573-c79bb3e10e8d"
+                }
+            }
+        }"#
+    );
 }

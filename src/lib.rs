@@ -20,6 +20,7 @@ extern crate serde;
 // GraphQL
 #[macro_use]
 extern crate juniper;
+extern crate juniper_iron;
 
 // Misc. libraries
 extern crate uuid;

@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use uuid::Uuid;
 use serde_json;
 
@@ -14,24 +13,14 @@ table! {
 
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "snake_case")]
-pub enum ContactMethod {
-    Email {
-        address: String,
-        subject: String,
-        cover_note: String
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct EntityCheck {
+pub struct Check {
+    pub id: Uuid,
     pub task: TaskType,
     pub check: CheckType,
-    pub contact: Option<ContactMethod>
 }
 
 
-impl EntityCheck {
+impl Check {
     pub fn calculate_collection_steps(&self) -> Vec<CollectionStep> {
         let mut result = Vec::new();
         match self.check {
@@ -56,9 +45,13 @@ impl EntityCheck {
 
 
 #[derive(Serialize, Deserialize, Debug, Default)]
-pub struct EntityChecks {
-    pub checks: Vec<EntityCheck>,
-    pub manual_collection_steps: Vec<CollectionStep>
+pub struct Profile {
+    pub id: Uuid,
+    pub possible_recipients: Vec<Uuid>,
+    pub checks: Vec<Check>,
+    pub selected_recipient: Option<Uuid>,
+    pub extra_collection_steps: Vec<CollectionStep>,
+    pub calculated_collection_steps: Vec<CollectionStep>
 }
 
 fn merge_collection_steps(into: &mut Vec<CollectionStep>, src: &[CollectionStep]) {
@@ -72,25 +65,71 @@ fn merge_collection_steps(into: &mut Vec<CollectionStep>, src: &[CollectionStep]
     }
 }
 
-impl EntityChecks {
-    pub fn calculate_collection_steps(&self) -> Vec<CollectionStep> {
-        let mut result: Vec<CollectionStep> = Vec::new();
+impl Profile {
+    pub fn recalculate_collection_steps(&mut self) {
+        // Clear collection steps
+        self.calculated_collection_steps.clear();
 
         // Add any collection steps generated from checks
         for check in &self.checks {
-            merge_collection_steps(&mut result, &check.calculate_collection_steps());
+            merge_collection_steps(&mut self.calculated_collection_steps, &check.calculate_collection_steps());
         }
 
-        // Add any manually added collection steps
-        merge_collection_steps(&mut result, &self.manual_collection_steps);
-
-        result
+        // Add any extra collection steps
+        merge_collection_steps(&mut self.calculated_collection_steps, &self.extra_collection_steps);
     }
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
+pub struct PublicArgs {
+    pub from: Option<String>,
+    pub bcc: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct PrivateArgs {
+    pub from: Option<String>,
+    pub bcc: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct Communication {
+    pub recipient: Uuid,
+    pub public_args: PublicArgs,
+    pub private_args: PrivateArgs,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum ContactMethod {
+    Email {
+        address: String
+    },
+    Sms {
+        phone_number: String
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Recipient {
+    pub id: Uuid,
+    pub name: String,
+    pub contact_method: ContactMethod,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct BasketContentsV1 {
-    pub entities: HashMap<Uuid, EntityChecks>
+    pub profiles_to_check: Vec<Profile>,
+    pub communications: Vec<Communication>,
+    pub recipients: Vec<Recipient>
+}
+
+impl BasketContentsV1 {
+    pub fn find_profile_mut(&mut self, profile_id: Uuid) -> Option<&mut Profile> {
+        self.profiles_to_check.iter_mut()
+            .filter(|p| p.id == profile_id)
+            .next()
+    }
 }
 
 version_json_type!(
@@ -114,22 +153,23 @@ mod tests {
 
     #[test]
     fn merge_address_collection_steps() {
-        let checks = EntityChecks {
+        let mut profile = Profile {
             checks: vec![
-                EntityCheck {
+                Check {
+                    id: Default::default(),
                     task: TaskType::IndividualVerifyIdentity,
                     check: CheckType::IdentityCheck,
-                    contact: None
                 }
             ],
-            manual_collection_steps: vec![
-                CollectionStep::AddressHistory {
-                    months: 3
-                }
-            ]
+            extra_collection_steps: vec![
+                CollectionStep::AddressHistory { months: 3 }
+            ],
+            ..Default::default()
         };
 
-        let actual_collection_steps: HashSet<_> = checks.calculate_collection_steps().into_iter().collect();
+        profile.recalculate_collection_steps();
+
+        let actual_collection_steps: HashSet<_> = profile.calculated_collection_steps.into_iter().collect();
         let expected_collection_steps: HashSet<_> = vec![
             CollectionStep::FullName {},
             CollectionStep::Dob { precision: DatePrecision::YearMonthDay },

@@ -8,6 +8,7 @@ use diesel::pg::PgConnection;
 use diesel::result::QueryResult;
 use r2d2;
 use r2d2_diesel::ConnectionManager;
+use uuid::Uuid;
 
 use schema::*;
 use database::interface::Database;
@@ -62,16 +63,35 @@ impl PgDatabase {
 
 // Implement all the operations supported by the database
 impl Database for PgDatabase {
-    fn list_baskets(&self) -> Vec<Basket> {
+    fn update_basket_impl(&self, basket_id: Uuid, f: &mut FnMut(&mut Basket)) -> Basket {
         self.execute(|conn| {
-            baskets::table.load::<Basket>(conn)
-        })
-    }
-    fn add_basket(&self, basket: &Basket) {
-        self.execute(|conn| {
-            try!(diesel::insert(basket).into(baskets::table)
-                .get_result::<Basket>(conn));
-            Ok(())
+            // Find an existing basket if one exists
+            let maybe_basket = baskets::table.find(basket_id).first::<Basket>(conn);
+            let is_new_basket = maybe_basket.is_err();
+
+            // Create a new basket if none exists
+            let mut basket = maybe_basket.unwrap_or_else(|_| {
+                Basket {
+                    id: basket_id,
+                    contents: Default::default()
+                }
+            });
+
+            // Run the update on the basket
+            f(&mut basket);
+
+            // Update the database  
+            if is_new_basket {
+                basket = diesel::insert(&basket).into(baskets::table)
+                    .get_result::<Basket>(conn)?;
+            } else {
+                basket = diesel::update(baskets::table.find(basket_id))
+                    .set(baskets::contents.eq(basket.contents))
+                    .get_result::<Basket>(conn)?;
+            }
+
+            // Return the updated basket
+            Ok(basket)
         })
     }
     fn migrate(&self) {
